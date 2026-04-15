@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import * as Yup from 'yup';
 import { Container, Row, Col, Form, Button, Card, Alert, Spinner } from 'react-bootstrap';
 import { useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
@@ -13,10 +14,7 @@ const Checkout = () => {
     email: '',
     address: '',
     city: '',
-    zip: '',
-    cardNumber: '',
-    expiryDate: '',
-    cvv: ''
+    zip: ''
   });
   
   const [errors, setErrors] = useState({});
@@ -24,49 +22,36 @@ const Checkout = () => {
   const [isSuccess, setIsSuccess] = useState(false);
   const [orderNumber, setOrderNumber] = useState('');
 
-  const validate = () => {
-    const newErrors = {};
-    // Shipping validation
-    if (!formData.name.trim()) newErrors.name = 'Full name is required';
-    if (!formData.email.trim()) newErrors.email = 'Email is required';
-    else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Email is invalid';
-    if (!formData.address.trim()) newErrors.address = 'Address is required';
-    if (!formData.city.trim()) newErrors.city = 'City is required';
-    if (!formData.zip.trim()) newErrors.zip = 'ZIP code is required';
-    
-    // Payment validation
-    if (!formData.cardNumber.trim()) newErrors.cardNumber = 'Card number is required';
-    else if (!/^\d{16}$/.test(formData.cardNumber.replace(/\s/g, ''))) newErrors.cardNumber = 'Card number must be 16 digits';
-    
-    if (!formData.expiryDate.trim()) newErrors.expiryDate = 'Expiry date is required';
-    else if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(formData.expiryDate)) newErrors.expiryDate = 'Use MM/YY format';
-    
-    if (!formData.cvv.trim()) newErrors.cvv = 'CVV is required';
-    else if (!/^\d{3,4}$/.test(formData.cvv)) newErrors.cvv = 'CVV must be 3 or 4 digits';
-    
-    return newErrors;
-  };
+  // ── Yup validation schema ──────────────────────────────────────────
+  const checkoutSchema = Yup.object().shape({
+    name: Yup.string()
+      .trim()
+      .min(3, 'Full name must be at least 3 characters')
+      .required('Full name is required'),
+
+    email: Yup.string()
+      .trim()
+      .email('Please enter a valid email address')
+      .required('Email is required'),
+
+    address: Yup.string()
+      .trim()
+      .min(5, 'Address must be at least 5 characters')
+      .required('Street address is required'),
+
+    city: Yup.string()
+      .trim()
+      .min(2, 'City name must be at least 2 characters')
+      .required('City is required'),
+
+    zip: Yup.string()
+      .trim()
+      .matches(/^[0-9]{4,10}$/, 'ZIP code must be 4–10 digits')
+      .required('ZIP / Postal code is required'),
+  });
 
   const handleChange = (e) => {
-    let { name, value } = e.target;
-    
-    // Format card number with spaces
-    if (name === 'cardNumber') {
-      value = value.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim().slice(0, 19);
-    }
-    // Format expiry date
-    if (name === 'expiryDate') {
-      value = value.replace(/\D/g, '');
-      if (value.length > 2) {
-        value = value.slice(0, 2) + '/' + value.slice(2, 4);
-      }
-      value = value.slice(0, 5);
-    }
-    // Format CVV
-    if (name === 'cvv') {
-      value = value.replace(/\D/g, '').slice(0, 4);
-    }
-
+    const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
     
     // Clear error for field
@@ -75,13 +60,16 @@ const Checkout = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const formErrors = validate();
-    
-    if (Object.keys(formErrors).length === 0) {
+
+    try {
+      // Validate all fields at once (abortEarly: false collects every error)
+      await checkoutSchema.validate(formData, { abortEarly: false });
+
+      setErrors({});
       setIsProcessing(true);
-      
+
       // Simulate API call for checkout (2 seconds delay)
       setTimeout(() => {
         const randomOrderNum = 'ORD-' + Math.random().toString(36).substr(2, 9).toUpperCase();
@@ -90,11 +78,18 @@ const Checkout = () => {
         setIsProcessing(false);
         clearCart();
       }, 2000);
-    } else {
+
+    } catch (validationError) {
+      // Collect all field-level errors from Yup's inner array
+      const formErrors = {};
+      validationError.inner.forEach((err) => {
+        if (err.path) formErrors[err.path] = err.message;
+      });
       setErrors(formErrors);
-      // Scroll to first error
-      const firstError = Object.keys(formErrors)[0];
-      const element = document.getElementsByName(firstError)[0];
+
+      // Scroll to the first invalid field
+      const firstErrorField = Object.keys(formErrors)[0];
+      const element = document.getElementsByName(firstErrorField)[0];
       if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   };
@@ -244,73 +239,6 @@ const Checkout = () => {
               </Card.Body>
             </Card>
 
-            {/* Payment Card */}
-            <Card className="shadow-sm border-0 bg-white rounded-4 overflow-hidden mb-4">
-              <div className="bg-success bg-opacity-10 p-4 border-bottom border-success border-opacity-10 d-flex align-items-center gap-3">
-                <div className="bg-success text-white rounded-circle d-flex align-items-center justify-content-center" style={{ width: '32px', height: '32px' }}>2</div>
-                <h4 className="fw-bold mb-0 text-success">Payment Method</h4>
-              </div>
-              <Card.Body className="p-4 p-md-5">
-                <div className="mb-4 bg-light p-3 rounded-3 border d-flex align-items-center justify-content-between">
-                  <div className="d-flex align-items-center gap-2">
-                    <BsCreditCard2Front className="text-muted" size={24} />
-                    <span className="fw-semibold">Credit / Debit Card</span>
-                  </div>
-                  <BsShieldLock className="text-muted" />
-                </div>
-
-                <Form.Group className="mb-3">
-                  <Form.Label className="fw-semibold small text-muted text-uppercase ls-1">Card Number</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="cardNumber"
-                    value={formData.cardNumber}
-                    onChange={handleChange}
-                    isInvalid={!!errors.cardNumber}
-                    placeholder="0000 0000 0000 0000"
-                    className="py-2 border-light-subtle bg-light bg-opacity-10"
-                  />
-                  <Form.Control.Feedback type="invalid">{errors.cardNumber}</Form.Control.Feedback>
-                </Form.Group>
-
-                <Row>
-                  <Col md={6}>
-                    <Form.Group className="mb-3">
-                      <Form.Label className="fw-semibold small text-muted text-uppercase ls-1">Expiry Date</Form.Label>
-                      <Form.Control
-                        type="text"
-                        name="expiryDate"
-                        value={formData.expiryDate}
-                        onChange={handleChange}
-                        isInvalid={!!errors.expiryDate}
-                        placeholder="MM / YY"
-                        className="py-2 border-light-subtle bg-light bg-opacity-10"
-                      />
-                      <Form.Control.Feedback type="invalid">{errors.expiryDate}</Form.Control.Feedback>
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group className="mb-3">
-                      <Form.Label className="fw-semibold small text-muted text-uppercase ls-1">Security Code (CVV)</Form.Label>
-                      <Form.Control
-                        type="text"
-                        name="cvv"
-                        value={formData.cvv}
-                        onChange={handleChange}
-                        isInvalid={!!errors.cvv}
-                        placeholder="123"
-                        className="py-2 border-light-subtle bg-light bg-opacity-10"
-                      />
-                      <Form.Control.Feedback type="invalid">{errors.cvv}</Form.Control.Feedback>
-                    </Form.Group>
-                  </Col>
-                </Row>
-                <p className="small text-muted mb-0 mt-2">
-                  <BsShieldLock className="me-1" /> Your information is encrypted and securely processed.
-                </p>
-              </Card.Body>
-            </Card>
-
             <Button 
               variant="success" 
               type="submit" 
@@ -324,7 +252,7 @@ const Checkout = () => {
                   Processing Order...
                 </>
               ) : (
-                `Confirm & Pay $${getCartTotal().toFixed(2)}`
+                `Complete Purchase - $${getCartTotal().toFixed(2)}`
               )}
             </Button>
           </Form>
@@ -336,13 +264,13 @@ const Checkout = () => {
               <h4 className="fw-bold mb-0">Order Summary</h4>
             </div>
             <Card.Body className="p-4">
-              <div className="cart-summary-items mb-4" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+              <div className="cart-summary-items mb-4 px-2 pt-2" style={{ maxHeight: '300px', overflowY: 'auto', overflowX: 'hidden' }}>
                 {cartItems.map(item => (
                   <div key={item.id} className="d-flex justify-content-between align-items-center mb-3">
                     <div className="d-flex align-items-center gap-3">
-                      <div className="position-relative">
-                        <img src={item.image} alt={item.title} className="rounded" style={{ width: '50px', height: '50px', objectFit: 'contain' }} />
-                        <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-dark">
+                      <div className="position-relative me-2">
+                        <img src={item.image} alt={item.title} className="rounded checkout-item-img" />
+                        <span className="position-absolute badge rounded-circle checkout-quantity-badge">
                           {item.quantity}
                         </span>
                       </div>

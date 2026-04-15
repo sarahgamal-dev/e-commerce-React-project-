@@ -7,7 +7,7 @@ const ProductCard = ({ product }) => {
   const { addToCart } = useCart();
 
   return (
-    <Card className={`h-100 shadow-sm border-0 product-card ${product.category === 'mobile-accessories' ? 'glow-effect' : ''}`}>
+    <Card className={`h-100 shadow-sm border-0 product-card ${['smartphones', 'laptops', 'mobile-accessories'].includes(product.category) ? 'glow-effect' : ''}`}>
       <div className="product-image-container">
         <Link to={`/product/${product.id}`} className="text-decoration-none text-dark">
           <div className="p-3 bg-white" style={{ height: '250px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
@@ -30,19 +30,22 @@ const ProductCard = ({ product }) => {
           </Button>
         </div>
       </div>
-      <Card.Body className="d-flex flex-column bg-white">
+      <Card.Body className="d-flex flex-column bg-white pt-2">
+        <div className="product-accent-line"></div>
         <Link to={`/product/${product.id}`} className="text-decoration-none text-dark">
-          <Card.Title className="text-truncate fw-bold mb-1" title={product.title}>{product.title}</Card.Title>
+          <Card.Title className="text-truncate fw-bold mb-0" title={product.title} style={{ fontSize: '1rem' }}>
+            {product.title}
+          </Card.Title>
         </Link>
-        <Card.Text className="text-muted small text-uppercase mb-3" style={{ letterSpacing: '1px' }}>
-          {product.category.replace(/-/g, ' ')}
+        <Card.Text className="text-muted mb-3" style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>
+          {product.category.toUpperCase().replace(/-/g, ' ')}
         </Card.Text>
         <div className="mt-auto">
           <div className="d-flex justify-content-between align-items-center">
-            <span className="fs-5 fw-bold text-primary">${product.price?.toFixed(2)}</span>
-            <div className="d-flex align-items-center">
-              <span className="text-warning me-1">★</span>
-              <span className="small fw-semibold">{product.rating?.rate || 'N/A'}</span>
+            <span className="fw-bold text-primary" style={{ fontSize: '1.1rem' }}>${(product.price || 0).toFixed(2)}</span>
+            <div className="d-flex align-items-center gap-1">
+              <span className="text-warning small">★</span>
+              <span className="small fw-bold text-muted">{product.rating?.rate || '0.0'}</span>
             </div>
           </div>
         </div>

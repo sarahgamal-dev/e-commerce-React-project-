@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
+import BackToTop from './components/BackToTop';
 import Home from './pages/Home';
 import Products from './pages/Products';
 import ProductDetail from './pages/ProductDetail';
@@ -23,6 +24,7 @@ function App() {
               <Route path="/checkout" element={<Checkout />} />
             </Routes>
           </main>
+          <BackToTop />
           <footer className="bg-dark text-white text-center py-4 mt-auto">
             <p className="mb-0">&copy; {new Date().getFullYear()} FreshCart E-Commerce. All rights reserved.</p>
           </footer>

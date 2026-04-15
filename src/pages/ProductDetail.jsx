@@ -66,11 +66,11 @@ const ProductDetail = () => {
         </Col>
         <Col md={6} className="d-flex flex-column justify-content-center">
           <Badge bg="info" className="align-self-start mb-2 px-3 py-2 text-capitalize">
-            {product.category}
+            {product.category?.replace(/-/g, ' ')}
           </Badge>
           <h1 className="fw-bold mb-3">{product.title}</h1>
           <div className="d-flex align-items-center mb-4">
-            <span className="fs-3 fw-bold text-primary me-3">${product.price?.toFixed(2)}</span>
+            <span className="fs-3 fw-bold text-primary me-3">${(product.price || 0).toFixed(2)}</span>
             <span className="text-warning border border-warning px-2 rounded">
               ★ {product.rating?.rate} ({product.rating?.count} reviews)
             </span>
